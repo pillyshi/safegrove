@@ -20,7 +20,8 @@ def test_readme_simulation_api_shape_can_be_called():
     result = sim.run(steps=1000, room_size=3, private_room_policy="auto")
 
     assert result.isolation_score("B") >= 0
-    assert result.bridge_load("C") == 1
+    assert result.bridge_load("C") == 1000
+    assert community.bridge_load("C") == 1
     assert result.unwanted_encounters() == 0
 
 
@@ -197,3 +198,41 @@ def test_policy_room_counts_are_recorded_for_always_public_and_private():
     assert public_result.private_room_count == 0
     assert private_result.public_room_count == 0
     assert private_result.private_room_count == 3
+
+
+def test_simulation_tracks_dynamic_bridge_load_over_time():
+    community = sg.Community()
+    community.add_people(["A", "B", "C"])
+    community.dislike("A", "B")
+    sim = sg.Simulation(community)
+
+    result = sim.run(steps=5, room_size=3, private_room_policy="private", seed=1)
+
+    assert result.bridge_load("C") == 5
+    assert result.bridge_load("A") == 0
+    assert result.bridge_load("B") == 0
+
+
+def test_dynamic_bridge_load_counts_directed_conflicts_among_other_participants():
+    community = sg.Community()
+    community.add_people(["A", "B", "C"])
+    community.dislike("A", "B")
+    community.dislike("B", "A")
+    sim = sg.Simulation(community)
+
+    result = sim.run(steps=5, room_size=3, private_room_policy="private", seed=1)
+
+    assert result.bridge_load("C") == 10
+
+
+def test_dynamic_bridge_load_is_zero_when_no_user_bridges_a_conflict():
+    community = sg.Community()
+    community.add_people(["A", "B"])
+    community.dislike("A", "B")
+    sim = sg.Simulation(community)
+
+    result = sim.run(steps=5, room_size=2, private_room_policy="private", seed=1)
+
+    assert result.bridge_load("A") == 0
+    assert result.bridge_load("B") == 0
+    assert community.bridge_load("A") == 0

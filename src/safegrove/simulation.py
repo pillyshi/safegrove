@@ -28,6 +28,7 @@ class Simulation:
         rng = random.Random(seed)
         visible_counts = {person: 0 for person in people}
         hidden_counts = {person: 0 for person in people}
+        bridge_load_counts = {person: 0 for person in people}
         unwanted_encounter_count = 0
         private_room_count = 0
         public_room_count = 0
@@ -47,6 +48,10 @@ class Simulation:
                     visible_counts[person] += 1
                 else:
                     hidden_counts[person] += 1
+            for participant in participants:
+                bridge_load_counts[participant] += self._bridge_load_for_participant(
+                    participant, participants
+                )
 
         return SimulationResult(
             self.community,
@@ -56,6 +61,7 @@ class Simulation:
             seed=seed,
             visible_counts=visible_counts,
             hidden_counts=hidden_counts,
+            bridge_load_counts=bridge_load_counts,
             unwanted_encounter_count=unwanted_encounter_count,
             private_room_count=private_room_count,
             public_room_count=public_room_count,
@@ -79,6 +85,10 @@ class Simulation:
             if source != target and self.community.dislikes(source, target)
         )
 
+    def _bridge_load_for_participant(self, participant, participants):
+        other_participants = [person for person in participants if person != participant]
+        return self._unwanted_encounters(other_participants)
+
 
 class SimulationResult:
     """Result metrics from a simulation run."""
@@ -92,6 +102,7 @@ class SimulationResult:
         seed,
         visible_counts,
         hidden_counts,
+        bridge_load_counts,
         unwanted_encounter_count,
         private_room_count,
         public_room_count,
@@ -103,6 +114,7 @@ class SimulationResult:
         self.seed = seed
         self.visible_counts = dict(visible_counts)
         self.hidden_counts = dict(hidden_counts)
+        self.bridge_load_counts = dict(bridge_load_counts)
         self._unwanted_encounter_count = unwanted_encounter_count
         self.private_room_count = private_room_count
         self.public_room_count = public_room_count
@@ -115,8 +127,9 @@ class SimulationResult:
         return self.hidden_counts[user] / self.steps
 
     def bridge_load(self, user):
-        """Return the bridge load metric from the underlying community."""
-        return self.community.bridge_load(user)
+        """Return the simulated bridge load for a user."""
+        self.community._require_person(user)
+        return self.bridge_load_counts[user]
 
     def unwanted_encounters(self):
         """Return the directed unwanted encounter count."""
