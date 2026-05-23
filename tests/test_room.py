@@ -49,3 +49,51 @@ def test_rejects_unknown_room_visibility():
 
     with pytest.raises(ValueError, match="Unknown visibility"):
         community.create_room(["A"], visibility="hidden")
+
+
+def test_can_join_uses_the_same_policy_as_can_see():
+    community = sg.Community()
+    community.add_people(["A", "B", "C"])
+    community.dislike("A", "B")
+    room = community.create_room(["A", "C"])
+
+    assert room.can_join("C") is True
+    assert room.can_join("B") is False
+
+
+def test_participant_cannot_invite_user_blocked_by_room_policy():
+    community = sg.Community()
+    community.add_people(["A", "B", "C"])
+    community.dislike("A", "B")
+    room = community.create_room(["A", "C"])
+
+    assert room.can_invite("C", "B") is False
+
+
+def test_participant_can_invite_user_allowed_by_room_policy():
+    community = sg.Community()
+    community.add_people(["A", "B", "C"])
+    room = community.create_room(["A"])
+
+    assert room.can_invite("A", "B") is True
+    assert room.can_invite("A", "C") is True
+
+
+def test_non_participant_cannot_invite_into_room():
+    community = sg.Community()
+    community.add_people(["A", "B", "C"])
+    room = community.create_room(["A"])
+
+    assert room.can_invite("B", "C") is False
+
+
+def test_invite_requires_registered_people():
+    community = sg.Community()
+    community.add_person("A")
+    room = community.create_room(["A"])
+
+    with pytest.raises(ValueError, match="Unknown person"):
+        room.can_invite("A", "B")
+
+    with pytest.raises(ValueError, match="Unknown person"):
+        room.can_invite("B", "A")

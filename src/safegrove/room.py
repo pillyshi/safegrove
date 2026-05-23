@@ -27,3 +27,13 @@ class Room:
             not self._community.dislikes(participant, user)
             for participant in self._participants
         )
+
+    def can_join(self, user):
+        """Return whether user can safely join this room."""
+        return self.can_see(user)
+
+    def can_invite(self, inviter, invitee):
+        """Return whether inviter can safely invite invitee to this room."""
+        self._community._require_person(inviter)
+        self._community._require_person(invitee)
+        return inviter in self._participants and self.can_join(invitee)
