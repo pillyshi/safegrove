@@ -29,10 +29,16 @@ class Simulation:
         visible_counts = {person: 0 for person in people}
         hidden_counts = {person: 0 for person in people}
         unwanted_encounter_count = 0
+        private_room_count = 0
+        public_room_count = 0
 
         for _ in range(steps):
             participants = rng.sample(people, room_size)
-            visibility = self._visibility_for_policy(private_room_policy)
+            visibility = self._visibility_for_policy(private_room_policy, participants)
+            if visibility == "private":
+                private_room_count += 1
+            else:
+                public_room_count += 1
             room = self.community.create_room(participants, visibility=visibility)
             if visibility == "public":
                 unwanted_encounter_count += self._unwanted_encounters(participants)
@@ -51,12 +57,19 @@ class Simulation:
             visible_counts=visible_counts,
             hidden_counts=hidden_counts,
             unwanted_encounter_count=unwanted_encounter_count,
+            private_room_count=private_room_count,
+            public_room_count=public_room_count,
         )
 
-    def _visibility_for_policy(self, private_room_policy):
+    def _visibility_for_policy(self, private_room_policy, participants):
         if private_room_policy == "public":
             return "public"
+        if private_room_policy == "auto" and not self._has_conflict(participants):
+            return "public"
         return "private"
+
+    def _has_conflict(self, participants):
+        return self._unwanted_encounters(participants) > 0
 
     def _unwanted_encounters(self, participants):
         return sum(
@@ -80,6 +93,8 @@ class SimulationResult:
         visible_counts,
         hidden_counts,
         unwanted_encounter_count,
+        private_room_count,
+        public_room_count,
     ):
         self.community = community
         self.steps = steps
@@ -89,6 +104,8 @@ class SimulationResult:
         self.visible_counts = dict(visible_counts)
         self.hidden_counts = dict(hidden_counts)
         self._unwanted_encounter_count = unwanted_encounter_count
+        self.private_room_count = private_room_count
+        self.public_room_count = public_room_count
 
     def isolation_score(self, user):
         """Return hidden rooms divided by total simulated rooms for a user."""

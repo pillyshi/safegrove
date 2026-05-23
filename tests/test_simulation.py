@@ -93,7 +93,7 @@ def test_isolation_score_tracks_hidden_private_rooms():
     community.dislike("A", "B")
     sim = sg.Simulation(community)
 
-    result = sim.run(steps=30, room_size=1, seed=3)
+    result = sim.run(steps=30, room_size=1, private_room_policy="private", seed=3)
 
     assert result.hidden_counts["B"] > 0
     assert result.hidden_counts["A"] == 0
@@ -145,3 +145,55 @@ def test_private_room_simulation_does_not_count_public_unwanted_encounters():
     result = sim.run(steps=5, room_size=2, private_room_policy="private", seed=1)
 
     assert result.unwanted_encounters() == 0
+
+
+def test_auto_policy_uses_private_rooms_for_conflict_groups():
+    community = sg.Community()
+    community.add_people(["A", "B"])
+    community.dislike("A", "B")
+    sim = sg.Simulation(community)
+
+    result = sim.run(steps=5, room_size=2, private_room_policy="auto", seed=1)
+
+    assert result.private_room_count == 5
+    assert result.public_room_count == 0
+    assert result.unwanted_encounters() == 0
+
+
+def test_auto_policy_uses_public_rooms_for_non_conflict_groups():
+    community = sg.Community()
+    community.add_people(["A", "B"])
+    sim = sg.Simulation(community)
+
+    result = sim.run(steps=5, room_size=2, private_room_policy="auto", seed=1)
+
+    assert result.private_room_count == 0
+    assert result.public_room_count == 5
+    assert result.unwanted_encounters() == 0
+
+
+def test_auto_policy_reduces_public_unwanted_encounters_for_conflict_groups():
+    community = sg.Community()
+    community.add_people(["A", "B"])
+    community.dislike("A", "B")
+    sim = sg.Simulation(community)
+
+    public_result = sim.run(steps=5, room_size=2, private_room_policy="public", seed=1)
+    auto_result = sim.run(steps=5, room_size=2, private_room_policy="auto", seed=1)
+
+    assert public_result.unwanted_encounters() == 5
+    assert auto_result.unwanted_encounters() == 0
+
+
+def test_policy_room_counts_are_recorded_for_always_public_and_private():
+    community = sg.Community()
+    community.add_people(["A", "B"])
+    sim = sg.Simulation(community)
+
+    public_result = sim.run(steps=3, room_size=2, private_room_policy="public")
+    private_result = sim.run(steps=3, room_size=2, private_room_policy="private")
+
+    assert public_result.public_room_count == 3
+    assert public_result.private_room_count == 0
+    assert private_result.public_room_count == 0
+    assert private_result.private_room_count == 3
