@@ -126,6 +126,23 @@ class SimulationResult:
             return 0
         return self.hidden_counts[user] / self.steps
 
+    def visible_rooms(self, user):
+        """Return how many simulated rooms were visible to user."""
+        self.community._require_person(user)
+        return self.visible_counts[user]
+
+    def hidden_rooms(self, user):
+        """Return how many simulated rooms were hidden from user."""
+        self.community._require_person(user)
+        return self.hidden_counts[user]
+
+    def visibility_ratio(self, user):
+        """Return visible rooms divided by total simulated rooms for user."""
+        self.community._require_person(user)
+        if self.steps == 0:
+            return 0
+        return self.visible_counts[user] / self.steps
+
     def bridge_load(self, user):
         """Return the simulated bridge load for a user."""
         self.community._require_person(user)

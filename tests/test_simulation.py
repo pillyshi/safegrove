@@ -112,6 +112,7 @@ def test_zero_step_simulation_has_zero_isolation_score():
     assert result.visible_counts == {"A": 0}
     assert result.hidden_counts == {"A": 0}
     assert result.isolation_score("A") == 0
+    assert result.visibility_ratio("A") == 0
 
 
 def test_public_room_simulation_counts_directed_unwanted_encounters():
@@ -236,3 +237,47 @@ def test_dynamic_bridge_load_is_zero_when_no_user_bridges_a_conflict():
     assert result.bridge_load("A") == 0
     assert result.bridge_load("B") == 0
     assert community.bridge_load("A") == 0
+
+
+def test_visibility_metric_methods_explain_isolation_score():
+    community = sg.Community()
+    community.add_people(["A", "B"])
+    community.dislike("A", "B")
+    sim = sg.Simulation(community)
+
+    result = sim.run(steps=4, room_size=1, private_room_policy="private", seed=1)
+
+    assert result.visible_rooms("B") + result.hidden_rooms("B") == 4
+    assert result.isolation_score("B") == result.hidden_rooms("B") / 4
+    assert result.visibility_ratio("B") == result.visible_rooms("B") / 4
+    assert result.isolation_score("B") + result.visibility_ratio("B") == 1
+
+
+def test_visibility_metrics_cover_zero_partial_and_complete_visibility():
+    community = sg.Community()
+    community.add_people(["A", "B", "C"])
+    community.dislike("A", "B")
+    sim = sg.Simulation(community)
+
+    public_result = sim.run(steps=3, room_size=1, private_room_policy="public", seed=1)
+    private_result = sim.run(steps=30, room_size=1, private_room_policy="private", seed=3)
+
+    assert public_result.visibility_ratio("B") == 1
+    assert public_result.isolation_score("B") == 0
+    assert 0 < private_result.visibility_ratio("B") < 1
+    assert 0 < private_result.isolation_score("B") < 1
+
+
+def test_visibility_metric_methods_require_registered_users():
+    community = sg.Community()
+    sim = sg.Simulation(community)
+    result = sim.run(steps=0, room_size=1)
+
+    with pytest.raises(ValueError, match="Unknown person"):
+        result.visible_rooms("A")
+
+    with pytest.raises(ValueError, match="Unknown person"):
+        result.hidden_rooms("A")
+
+    with pytest.raises(ValueError, match="Unknown person"):
+        result.visibility_ratio("A")
