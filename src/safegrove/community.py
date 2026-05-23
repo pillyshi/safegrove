@@ -44,6 +44,10 @@ class Community:
             self._require_person(participant)
         return Room(self, participant_set, visibility=visibility)
 
+    def suggest_room(self, participants):
+        """Suggest a separate private room for the requested participants."""
+        return self.create_room(participants, visibility="private")
+
     def _require_person(self, person):
         if person not in self._people:
             raise ValueError(f"Unknown person: {person!r}")

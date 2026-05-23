@@ -97,3 +97,32 @@ def test_invite_requires_registered_people():
 
     with pytest.raises(ValueError, match="Unknown person"):
         room.can_invite("B", "A")
+
+
+def test_suggest_room_returns_private_room_for_requested_participants():
+    community = sg.Community()
+    community.add_people(["B", "C"])
+
+    room = community.suggest_room(["C", "B"])
+
+    assert room.participants == frozenset({"B", "C"})
+    assert room.visibility == "private"
+
+
+def test_suggested_room_uses_normal_private_visibility_rules():
+    community = sg.Community()
+    community.add_people(["A", "B", "C"])
+    community.dislike("C", "A")
+
+    room = community.suggest_room(["C", "B"])
+
+    assert room.can_see("B") is True
+    assert room.can_see("A") is False
+
+
+def test_suggest_room_requires_registered_participants():
+    community = sg.Community()
+    community.add_person("C")
+
+    with pytest.raises(ValueError, match="Unknown person"):
+        community.suggest_room(["C", "B"])
