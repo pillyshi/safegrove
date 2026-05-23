@@ -9,6 +9,7 @@ class Community:
     def __init__(self):
         self._people = set()
         self._dislikes = {}
+        self._likes = {}
 
     @property
     def people(self):
@@ -19,6 +20,7 @@ class Community:
         """Add one person to the community."""
         self._people.add(person)
         self._dislikes.setdefault(person, set())
+        self._likes.setdefault(person, set())
 
     def add_people(self, people):
         """Add multiple people to the community."""
@@ -36,6 +38,29 @@ class Community:
         self._require_person(source)
         self._require_person(target)
         return target in self._dislikes[source]
+
+    def like(self, source, target):
+        """Record that source likes target."""
+        self._require_person(source)
+        self._require_person(target)
+        self._likes[source].add(target)
+
+    def likes(self, source, target):
+        """Return whether source likes target."""
+        self._require_person(source)
+        self._require_person(target)
+        return target in self._likes[source]
+
+    def bridge_load(self, person):
+        """Estimate the conflict load among people this person likes."""
+        self._require_person(person)
+        bridged_people = self._likes[person]
+        return sum(
+            1
+            for source in bridged_people
+            for target in bridged_people
+            if source != target and target in self._dislikes[source]
+        )
 
     def create_room(self, participants, visibility="private"):
         """Create a room for registered participants."""
