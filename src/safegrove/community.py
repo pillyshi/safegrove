@@ -1,5 +1,7 @@
 """Community model for safegrove."""
 
+from .room import Room
+
 
 class Community:
     """A community of people and their directed relationship graph."""
@@ -34,6 +36,13 @@ class Community:
         self._require_person(source)
         self._require_person(target)
         return target in self._dislikes[source]
+
+    def create_room(self, participants, visibility="private"):
+        """Create a room for registered participants."""
+        participant_set = frozenset(participants)
+        for participant in participant_set:
+            self._require_person(participant)
+        return Room(self, participant_set, visibility=visibility)
 
     def _require_person(self, person):
         if person not in self._people:
