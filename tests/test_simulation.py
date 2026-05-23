@@ -47,6 +47,9 @@ def test_simulation_rejects_invalid_run_parameters():
     with pytest.raises(ValueError, match="room_size"):
         sim.run(steps=1, room_size=0)
 
+    with pytest.raises(ValueError, match="private_room_policy"):
+        sim.run(steps=1, room_size=1, private_room_policy="hidden")
+
 
 def test_simulation_rejects_impossible_room_sampling():
     community = sg.Community()
@@ -108,3 +111,37 @@ def test_zero_step_simulation_has_zero_isolation_score():
     assert result.visible_counts == {"A": 0}
     assert result.hidden_counts == {"A": 0}
     assert result.isolation_score("A") == 0
+
+
+def test_public_room_simulation_counts_directed_unwanted_encounters():
+    community = sg.Community()
+    community.add_people(["A", "B"])
+    community.dislike("A", "B")
+    sim = sg.Simulation(community)
+
+    result = sim.run(steps=5, room_size=2, private_room_policy="public", seed=1)
+
+    assert result.unwanted_encounters() == 5
+
+
+def test_public_room_simulation_counts_mutual_dislikes_separately():
+    community = sg.Community()
+    community.add_people(["A", "B"])
+    community.dislike("A", "B")
+    community.dislike("B", "A")
+    sim = sg.Simulation(community)
+
+    result = sim.run(steps=5, room_size=2, private_room_policy="public", seed=1)
+
+    assert result.unwanted_encounters() == 10
+
+
+def test_private_room_simulation_does_not_count_public_unwanted_encounters():
+    community = sg.Community()
+    community.add_people(["A", "B"])
+    community.dislike("A", "B")
+    sim = sg.Simulation(community)
+
+    result = sim.run(steps=5, room_size=2, private_room_policy="private", seed=1)
+
+    assert result.unwanted_encounters() == 0
